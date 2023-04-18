@@ -1,0 +1,8 @@
+seed: 0
+train: yes
+eval: yes
+
+data:
+  max_train: null
+  max_test: null
+  max_val: null

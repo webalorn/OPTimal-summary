@@ -1,0 +1,7 @@
+__pycache__
+__private__
+*.pyc
+.DS_Store
+
+data
+logs
