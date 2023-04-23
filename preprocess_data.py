@@ -7,7 +7,7 @@ rows, columns = data.shape
 
 # Get the list of train, valid and test articles
 all_train = open("data/all_train.txt").read().splitlines()
-all_valid = open("data/all_val.txt").read().splitlines()
+all_val = open("data/all_val.txt").read().splitlines()
 all_test = open("data/all_test.txt").read().splitlines()
 
 # Threshold to remove short articles with long summaries as well as articles with no summary
@@ -28,10 +28,10 @@ data['title'] = data['title'].str.replace(" ", "")
 
 # Split data into train, valid and test
 df_train = data[data['title'].isin(all_train)][['article', 'summary']]
-df_valid = data[data['title'].isin(all_valid)][['article', 'summary']]
+df_val = data[data['title'].isin(all_val)][['article', 'summary']]
 df_test = data[data['title'].isin(all_test)][['article', 'summary']]
 
 # Save data
 df_train.to_csv('data/train.csv',encoding='utf-8-sig',index=False) 
-df_valid.to_csv('data/valid.csv', encoding="utf-8-sig",index=False) 
+df_val.to_csv('data/val.csv', encoding="utf-8-sig",index=False) 
 df_test.to_csv('data/test.csv', encoding="utf-8-sig",index=False) 
