@@ -32,6 +32,6 @@ df_valid = data[data['title'].isin(all_valid)][['article', 'summary']]
 df_test = data[data['title'].isin(all_test)][['article', 'summary']]
 
 # Save data
-df_train.to_csv('data/train_temp.csv',encoding='utf-8-sig',index=False) 
-df_valid.to_csv('data/valid_temp.csv', encoding="utf-8-sig",index=False) 
-df_test.to_csv('data/test_temp.csv', encoding="utf-8-sig",index=False) 
+df_train.to_csv('data/train.csv',encoding='utf-8-sig',index=False) 
+df_valid.to_csv('data/valid.csv', encoding="utf-8-sig",index=False) 
+df_test.to_csv('data/test.csv', encoding="utf-8-sig",index=False) 
