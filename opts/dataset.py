@@ -18,6 +18,8 @@ def load_dataset(config):
 
 def preprocess_data(dataset, config, tokenizer):
     def preprocess_function(data_row):
+        if data_row['article'] is None:
+            return None
         prompt_ques = tokenizer.bos_token + data_row['article'] + config.answer_prompt
         prompt_ans = data_row['summary'] # + tokenizer.eos_token
         text = prompt_ques + prompt_ans
@@ -36,6 +38,8 @@ def preprocess_data(dataset, config, tokenizer):
     dataset = dataset.map(preprocess_function, batched=False)
 
     def filter_function(data_row):
+        if data_row is None:
+            return False
         # tokens = tokenizer(data_rows['text'], return_length=True)
         # return [tok_len <= config.max_tokens for tok_len in tokens.length]
         return len(data_row['input_ids']) <= config.max_tokens
