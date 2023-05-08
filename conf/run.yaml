@@ -2,7 +2,26 @@ seed: 0
 train: yes
 eval: yes
 
+# answer_prompt: ' A: '
+# answer_prompt: ' The summary of the previous text is: '
+answer_prompt: ' Summary: '
+max_tokens: 2048
+
 data:
   max_train: null
   max_test: null
   max_val: null
+
+model:
+  name: "facebook/opt-350m"
+
+training:
+  lr: 0.0002
+  batch_size: 16
+  num_epochs: 3
+
+testing:
+    batch_size: 16
+
+peft:
+  method: lora
