@@ -1,5 +1,7 @@
 import torch
 
+from pynvml import *
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Using device", device)
 
@@ -16,3 +18,9 @@ def print_trainable_parameters(model):
     print(
         f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
     )
+
+def print_gpu_utilization():
+    nvmlInit()
+    handle = nvmlDeviceGetHandleByIndex(1)
+    info = nvmlDeviceGetMemoryInfo(handle)
+    print(f"GPU memory occupied: {info.used//1024**2} MB.")

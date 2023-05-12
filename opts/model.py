@@ -3,7 +3,9 @@ from peft import LoraConfig, get_peft_model, PeftModel
 import torch
 from tqdm import tqdm
 
-from opts.utils import device
+from opts.utils import print_gpu_utilization
+
+from accelerate import Accelerator
 
 
 def load_tokenizer(config):
@@ -16,6 +18,9 @@ class OPTSModel(torch.nn.Module):
         super().__init__()
         self.cfg = config
 
+        self.accelerator = Accelerator(gradient_accumulation_steps=8)
+        self.device = self.accelerator.device
+
         if prev_model:
             self.model = prev_model
         else:
@@ -23,7 +28,9 @@ class OPTSModel(torch.nn.Module):
 
             for param in self.model.parameters():
                 param.requires_grad = False  # freeze the model
-            
+
+            #self.model.gradient_checkpointing_enable()
+
             if load_from is None:
                 print(f"Creating new PEFT adapter")
                 peft_config = self.get_peft_config(config)
@@ -31,7 +38,7 @@ class OPTSModel(torch.nn.Module):
             else:
                 print(f"Loading PEFT adapter from {load_from}")
                 self.model = PeftModel.from_pretrained(self.model, load_from)
-            self.model = self.model.to(device)
+            self.model = self.model.to(self.device)
 
     
     def get_peft_config(self, config):
@@ -48,7 +55,7 @@ class OPTSModel(torch.nn.Module):
             raise ValueError
         return peft_config
     
-    def forward(self, input_ids, attention_mask, labels=None, mode='train', max_new_tokens=None):
+    def forward(self, input_ids, attention_mask, labels=None, mode='train', max_new_tokens=None, prompt_ques_tokens=None):
         model_kwargs = {
             'input_ids': input_ids,
             'attention_mask': attention_mask,
@@ -57,7 +64,7 @@ class OPTSModel(torch.nn.Module):
         }
         model_kwargs = {k:v for k,v in model_kwargs.items() if v is not None}
 
-        print(input_ids.shape)
+        #print(input_ids.shape)
 
         if mode == 'train' or mode == 'evaluate':
             out_enc = self.model(**model_kwargs)
@@ -88,37 +95,50 @@ class OPTSModel(torch.nn.Module):
         self.model.save_pretrained("opts_model")
     
     def finetune_model(self, train_loader, val_loader):
+
+        print_gpu_utilization()
+
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.cfg.training.lr)
+        #optimizer = torch.optim.SGD(self.model.parameters(), lr=self.cfg.training.lr)
+
         lr_scheduler = get_linear_schedule_with_warmup(
             optimizer=optimizer,
             num_warmup_steps=0,
             num_training_steps=(len(train_loader) * self.cfg.training.num_epochs),
         )
 
+        self.model, optimizer, train_loader, val_loader, lr_scheduler = self.accelerator.prepare(
+            self.model, optimizer, train_loader, val_loader, lr_scheduler
+        )
+
         for epoch in range(self.cfg.training.num_epochs):
             self.train()
             total_loss = 0
             for step, batch in enumerate(tqdm(train_loader)):
+                with self.accelerator.accumulate(self.model):
+                    #optimizer.zero_grad()
+                    #batch = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
 
-                batch = {k: batch[k].to(device).to(device) for k in DATA_KEYS}
-                outputs = self(**batch, mode='train')
-                loss = outputs.loss
+                    outputs = self(**batch, mode='train')
+                    loss = outputs.loss
 
-                if loss is None:
-                    print('loss', loss)
-                    print('batch', batch.keys())
+                    if loss is None:
+                        print('loss', loss)
+                        print('batch', batch.keys())
 
-                total_loss += loss.detach().cpu().float()
-                loss.backward()
-                optimizer.step()
-                lr_scheduler.step()
-                optimizer.zero_grad()
+                    total_loss += loss.detach().cpu().float()
+                    self.accelerator.backward(loss)
+                    #loss.backward()
+
+                    optimizer.step()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
 
             self.eval()
             eval_loss = 0
             eval_preds = []
             for step, batch in enumerate(tqdm(val_loader)):
-                batch = {k: batch[k].to(device) for k in DATA_KEYS}
+                batch = {k: batch[k].to(self.device) for k in DATA_KEYS}
                 with torch.no_grad():
                     outputs = self(**batch, mode='evaluate')
                 loss = outputs.loss
@@ -134,3 +154,4 @@ class OPTSModel(torch.nn.Module):
             print(f"{epoch=}: {train_ppl=} {train_epoch_loss=} {eval_ppl=} {eval_epoch_loss=}")
 
             self.save()
+

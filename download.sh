@@ -1,6 +1,7 @@
 # This script downloads the necessary data for the project to run
 
 mkdir -p data
+mkdir -p data/processed
 cd data
 wget -nc https://github.com/mahnazkoupaee/WikiHow-Dataset/raw/master/all_train.txt
 wget -nc https://github.com/mahnazkoupaee/WikiHow-Dataset/raw/master/all_test.txt
