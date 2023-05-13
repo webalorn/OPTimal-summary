@@ -55,7 +55,7 @@ def run_main(config : DictConfig) -> None:
     print_gpu_utilization()
 
     # Training
-    model.finetune_model(train_loader, val_loader)
+    model.finetune_model(train_loader, val_loader, tokenizer)
     model.save()
 
 

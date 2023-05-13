@@ -91,10 +91,13 @@ class OPTSModel(torch.nn.Module):
             f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
         )
     
-    def save(self):
-        self.model.save_pretrained("opts_model")
-    
-    def finetune_model(self, train_loader, val_loader):
+    def save(self, iteration=None):
+        if iteration is None:
+            self.model.save_pretrained("results/opts_model")
+        else:
+            self.model.save_pretrained(f"results/opts_model_iter{iteration}")
+
+    def finetune_model(self, train_loader, val_loader, tokenizer):
 
         print_gpu_utilization()
 
@@ -134,6 +137,10 @@ class OPTSModel(torch.nn.Module):
                     lr_scheduler.step()
                     optimizer.zero_grad()
 
+                if step % (len(train_loader)//4) == 0 and step != 0:
+                    print(step, len(train_loader), len(train_loader)//4, epoch)
+                    self.save(epoch * len(train_loader) + step)
+
             self.eval()
             eval_loss = 0
             eval_preds = []
@@ -153,5 +160,5 @@ class OPTSModel(torch.nn.Module):
             train_ppl = torch.exp(train_epoch_loss)
             print(f"{epoch=}: {train_ppl=} {train_epoch_loss=} {eval_ppl=} {eval_epoch_loss=}")
 
-            self.save()
+            self.save(f"epoch{epoch}")
 
