@@ -19,7 +19,7 @@ def load_dataset(config):
 def preprocess_data(dataset, config, tokenizer):
     def preprocess_function(data_row):
         prompt_ques = tokenizer.bos_token + data_row['article'] + config.answer_prompt
-        prompt_ans = data_row['summary'] # + tokenizer.eos_token
+        prompt_ans = data_row['summary'] + tokenizer.eos_token
         text = prompt_ques + prompt_ans
         (tokens,) = tokenizer(text, return_tensors="pt", padding=False, add_special_tokens=False),
         data = {

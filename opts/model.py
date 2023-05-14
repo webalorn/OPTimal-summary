@@ -117,7 +117,8 @@ class OPTSModel(torch.nn.Module):
         for epoch in range(self.cfg.training.num_epochs):
             self.train()
             total_loss = 0
-            for step, batch in enumerate(tqdm(train_loader)):
+            # for step, batch in enumerate(tqdm(train_loader)):
+            for step, batch in enumerate(train_loader):
                 with self.accelerator.accumulate(self.model):
                     #optimizer.zero_grad()
                     #batch = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
@@ -137,7 +138,8 @@ class OPTSModel(torch.nn.Module):
                     lr_scheduler.step()
                     optimizer.zero_grad()
 
-                    print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {loss:.6f} (avg {total_loss/(step+1):.6f})')
+                    if self.cfg.training.log_step and step % self.cfg.training.log_step == 0:
+                        print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {loss:.6f} (avg {total_loss/(step+1):.6f})')
 
                 if step % (len(train_loader)//4) == 0 and step != 0:
                     # print(step, len(train_loader), len(train_loader)//4, epoch)
@@ -147,15 +149,19 @@ class OPTSModel(torch.nn.Module):
             self.eval()
             eval_loss = 0
             eval_preds = []
-            for step, batch in enumerate(tqdm(val_loader)):
+            # for step, batch in enumerate(tqdm(val_loader)):
+            for step, batch in enumerate(val_loader):
                 batch = {k: batch[k].to(self.device) for k in DATA_KEYS}
                 with torch.no_grad():
                     outputs = self(**batch, mode='evaluate')
                 loss = outputs.loss
                 eval_loss += loss.detach().float()
-                eval_preds.extend(
-                    tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
-                )
+                batch_generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
+                eval_preds.extend(batch_generated)
+                if self.cfg.testing.log_step and step % self.cfg.testing.log_step == 0:
+                    for txt, generated in zip(batch['text'], batch_generated):
+                        generated = generated[len(txt):]
+                        print(f"Generated summary: \"{generated}\"")
 
             eval_epoch_loss = eval_loss / len(val_loader)
             eval_ppl = torch.exp(eval_epoch_loss)
