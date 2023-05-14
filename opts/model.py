@@ -179,9 +179,10 @@ class OPTSModel(torch.nn.Module):
                 generated = tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0]
 
                 generated = generated[len(batch['prompt_ques'][0]):]
-                print(f"Prompt: \"{batch['prompt_ques'][0]}\"")
-                print(f"Wanted summary: \"{batch['prompt_ans'][0]}\"")
-                print(f"Generated summary: \"{repr(generated)}\"")
+                print(f"\033[92mPrompt:\033[0m \"{batch['prompt_ques'][0]}\"")
+                print(f"\033[92mWanted summary:\033[0m \"{batch['prompt_ans'][0]}\"")
+                print(f"\033[92mGenerated summary:\033[0m \"{repr(generated)}\"")
+                print()
 
             eval_epoch_loss = eval_loss / len(val_loader)
             eval_ppl = torch.exp(eval_epoch_loss)
