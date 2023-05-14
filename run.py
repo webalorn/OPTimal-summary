@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import random
 
 import hydra
@@ -28,10 +28,10 @@ def run_main(config : DictConfig) -> None:
     # Loading tokenizer
     tokenizer = load_tokenizer(config)
 
-    if len(os.listdir('data/processed/')) != 0:
+    processed_path = Path('data/processed')
+    if Path('data/processed/').exists() and len(list(processed_path.iterdir())) != 0:
         print("Loading Dataset")
         dataset = load_from_disk('data/processed', keep_in_memory=True)
-
     else:
         # train_data, test_data, valid_data = load_dataset(config)
         dataset = load_dataset(config)
@@ -39,8 +39,8 @@ def run_main(config : DictConfig) -> None:
         dataset.save_to_disk('data/processed')
 
     print(dataset)
-    dataset = dataset.remove_columns(column_names=['article', 'summary', 'text', 'prompt_ques', 'prompt_ans'])
-    print(dataset)
+    # dataset = dataset.remove_columns(column_names=['article', 'summary', 'text', 'prompt_ques', 'prompt_ans'])
+    # print(dataset)
     train_loader, test_loader, val_loader = get_data_loaders(dataset, config, tokenizer)
 
     print_gpu_utilization()

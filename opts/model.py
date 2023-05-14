@@ -120,15 +120,15 @@ class OPTSModel(torch.nn.Module):
             # for step, batch in enumerate(tqdm(train_loader)):
             for step, batch in enumerate(train_loader):
                 with self.accelerator.accumulate(self.model):
-                    #optimizer.zero_grad()
-                    #batch = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
+                    optimizer.zero_grad()
+                    batch_data = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
 
-                    outputs = self(**batch, mode='train')
+                    outputs = self(**batch_data, mode='train')
                     loss = outputs.loss
 
                     if loss is None:
                         print('loss', loss)
-                        print('batch', batch.keys())
+                        print('batch', batch_data.keys())
 
                     total_loss += loss.detach().cpu().float()
                     self.accelerator.backward(loss)
@@ -136,7 +136,7 @@ class OPTSModel(torch.nn.Module):
 
                     optimizer.step()
                     lr_scheduler.step()
-                    optimizer.zero_grad()
+                    # optimizer.zero_grad()
 
                     if self.cfg.training.log_step and step % self.cfg.training.log_step == 0:
                         print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {loss:.6f} (avg {total_loss/(step+1):.6f})')
@@ -151,9 +151,9 @@ class OPTSModel(torch.nn.Module):
             eval_preds = []
             # for step, batch in enumerate(tqdm(val_loader)):
             for step, batch in enumerate(val_loader):
-                batch = {k: batch[k].to(self.device) for k in DATA_KEYS}
+                batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
                 with torch.no_grad():
-                    outputs = self(**batch, mode='evaluate')
+                    outputs = self(**batch_data, mode='evaluate')
                 loss = outputs.loss
                 eval_loss += loss.detach().float()
                 batch_generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)

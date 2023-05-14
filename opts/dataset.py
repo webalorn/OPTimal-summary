@@ -46,12 +46,8 @@ def preprocess_data(dataset, config, tokenizer):
 
 def get_data_loaders(dataset, config, tokenizer):
     def collate_padding(batch):
-        # batch = {
-        #     #**tokenizer(batch[0]['text'], return_tensors="pt", padding='max_length', truncation=True, max_length=2048),
-        #     **tokenizer(batch[0]['text'], return_tensors="pt", padding=True),
-        #     # **batch[0],
-        # }
         batch = { key: [row[key] for row in batch] for key in batch[0].keys() }
+        
         batch['input_ids'] = pad_sequence([torch.tensor(t) for t in batch['input_ids']], padding_value=tokenizer.pad_token_id, batch_first=True)
         batch['attention_mask'] = pad_sequence([torch.tensor(t) for t in batch['attention_mask']], padding_value=0.0, batch_first=True)
         

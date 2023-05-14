@@ -1,6 +1,10 @@
 import torch
 
-from pynvml import *
+try:
+    from pynvml import *
+    HAS_PYNVML = True
+except:
+    HAS_PYNVML = False
 
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # print("Using device", device)
@@ -20,7 +24,10 @@ def print_trainable_parameters(model):
     )
 
 def print_gpu_utilization():
-    nvmlInit()
-    handle = nvmlDeviceGetHandleByIndex(1)
-    info = nvmlDeviceGetMemoryInfo(handle)
-    print(f"GPU memory occupied: {info.used//1024**2} MB.")
+    if HAS_PYNVML:
+        nvmlInit()
+        handle = nvmlDeviceGetHandleByIndex(1)
+        info = nvmlDeviceGetMemoryInfo(handle)
+        print(f"GPU memory occupied: {info.used//1024**2} MB.")
+    else:
+        print("[WARNING] HAS_PYNVML=False")
