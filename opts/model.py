@@ -18,7 +18,8 @@ class OPTSModel(torch.nn.Module):
         super().__init__()
         self.cfg = config
 
-        self.accelerator = Accelerator(gradient_accumulation_steps=8)
+        # self.accelerator = Accelerator(gradient_accumulation_steps=8)
+        self.accelerator = Accelerator()
         self.device = self.accelerator.device
 
         if prev_model:
@@ -119,30 +120,30 @@ class OPTSModel(torch.nn.Module):
             total_loss = 0
             # for step, batch in enumerate(tqdm(train_loader)):
             for step, batch in enumerate(train_loader):
-                with self.accelerator.accumulate(self.model):
-                    optimizer.zero_grad()
-                    batch_data = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
+                # with self.accelerator.accumulate(self.model):
 
-                    cumul_losses = []
-                    for i_split in range(0, len(batch_data['input_ids']), self.cfg.training.batch_split_size):
-                        split_data = {
-                            k: batch_data[k][i_split : i_split + self.cfg.training.batch_split_size]
-                            for k in DATA_KEYS
-                        }
-                        outputs = self(**split_data, mode='train')
-                        cumul_losses.append(outputs.loss)
+                optimizer.zero_grad()
+                batch_data = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
 
-                    loss = torch.stack(cumul_losses).sum() / len(cumul_losses)
-                    total_loss += loss.detach().cpu().float()
-                    self.accelerator.backward(loss)
-                    #loss.backward()
+                cumul_losses = []
+                for i_split in range(0, len(batch_data['input_ids']), self.cfg.training.batch_split_size):
+                    split_data = {
+                        k: batch_data[k][i_split : i_split + self.cfg.training.batch_split_size]
+                        for k in DATA_KEYS
+                    }
+                    outputs = self(**split_data, mode='train')
+                    self.accelerator.backward(outputs.loss)
+                    cumul_losses.append(outputs.loss.detach().cpu().float())
 
-                    optimizer.step()
-                    lr_scheduler.step()
-                    # optimizer.zero_grad()
+                total_loss = sum(cumul_losses) / len(cumul_losses)
+                #loss.backward()
 
-                    if self.cfg.training.log_step and step % self.cfg.training.log_step == 0:
-                        print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {loss:.6f} (avg {total_loss/(step+1):.6f})')
+                optimizer.step()
+                lr_scheduler.step()
+                # optimizer.zero_grad()
+
+                if self.cfg.training.log_step and step % self.cfg.training.log_step == 0:
+                    print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {loss:.6f} (avg {total_loss/(step+1):.6f})')
 
                 if step % (len(train_loader)//4) == 0 and step != 0:
                     # print(step, len(train_loader), len(train_loader)//4, epoch)
