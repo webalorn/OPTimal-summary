@@ -135,15 +135,13 @@ class OPTSModel(torch.nn.Module):
                     self.accelerator.backward(outputs.loss)
                     cumul_losses.append(outputs.loss.detach().cpu().float())
 
-                total_loss = sum(cumul_losses) / len(cumul_losses)
-                #loss.backward()
-
+                batch_loss = sum(cumul_losses) / len(cumul_losses)
+                total_loss += batch_loss
                 optimizer.step()
                 lr_scheduler.step()
-                # optimizer.zero_grad()
 
                 if self.cfg.training.log_step and step % self.cfg.training.log_step == 0:
-                    print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {loss:.6f} (avg {total_loss/(step+1):.6f})')
+                    print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {batch_loss:.6f} (avg {total_loss/(step+1):.6f})')
 
                 if step % (len(train_loader)//4) == 0 and step != 0:
                     # print(step, len(train_loader), len(train_loader)//4, epoch)
