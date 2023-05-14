@@ -123,13 +123,16 @@ class OPTSModel(torch.nn.Module):
                     optimizer.zero_grad()
                     batch_data = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
 
-                    outputs = self(**batch_data, mode='train')
-                    loss = outputs.loss
+                    cumul_losses = []
+                    for i_split in range(0, len(batch_data['input_ids']), self.cfg.training.batch_split_size):
+                        split_data = {
+                            k: batch_data[k][i_split : i_split + self.cfg.training.batch_split_size]
+                            for k in DATA_KEYS
+                        }
+                        outputs = self(**split_data, mode='train')
+                        cumul_losses.append(outputs.loss)
 
-                    if loss is None:
-                        print('loss', loss)
-                        print('batch', batch_data.keys())
-
+                    loss = torch.stack(cumul_losses).sum() / len(cumul_losses)
                     total_loss += loss.detach().cpu().float()
                     self.accelerator.backward(loss)
                     #loss.backward()
@@ -161,7 +164,7 @@ class OPTSModel(torch.nn.Module):
                 if self.cfg.testing.log_step and step % self.cfg.testing.log_step == 0:
                     for txt, generated in zip(batch['text'], batch_generated):
                         generated = generated[len(txt):]
-                        print(f"Generated summary: \"{generated}\"")
+                        print(f"[{epoch}] Step {step+1}/{len(val_loader)} Generated summary: \"{repr(generated)}\"")
 
             eval_epoch_loss = eval_loss / len(val_loader)
             eval_ppl = torch.exp(eval_epoch_loss)
