@@ -13,14 +13,14 @@ data:
   max_val: null
 
 model:
-  name: "facebook/opt-350m"
-  # name: "facebook/opt-125m"
+  # name: "facebook/opt-350m"
+  name: "facebook/opt-125m"
 
 training:
   lr: 0.0002
   batch_size: 8
-  batch_split_size: 2
-  num_epochs: 1
+  batch_split_size: 1
+  num_epochs: 10
   log_step: 10
 
 testing:
