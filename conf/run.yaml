@@ -14,8 +14,8 @@ data:
   max_val: 1000
 
 model:
-  name: "facebook/opt-350m"
-  # name: "facebook/opt-125m"
+  # name: "facebook/opt-350m"
+  name: "facebook/opt-125m"
 
 training:
   lr: 0.0002
