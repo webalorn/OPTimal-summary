@@ -160,10 +160,28 @@ class OPTSModel(torch.nn.Module):
                 eval_loss += loss.detach().float()
                 batch_generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
                 eval_preds.extend(batch_generated)
+                
                 if self.cfg.testing.log_step and step % self.cfg.testing.log_step == 0:
-                    for txt, generated in zip(batch['text'], batch_generated):
-                        generated = generated[len(txt):]
-                        print(f"[{epoch}] Step {step+1}/{len(val_loader)} Generated summary: \"{repr(generated)}\"")
+                    print(f"[EVAL] [{epoch}] Step {step+1}/{len(val_loader)} loss {eval_loss/(step+1)}\"")
+            
+            # Evaluate generations
+            for step, batch in enumerate(val_loader):
+                if step >= self.cfg.testing.n_generate:
+                    break
+                input_ids = batch['prompt_ques_tokens'][0].unsqueeze(0)
+                attention_mask = batch['prompt_ques_attention_mask'][0].unsqueeze(0)
+                max_new_tokens = min(self.cfg.max_tokens - len(input_ids), self.cfg.generate_max_new_tokens)
+
+                with torch.no_grad():
+                    outputs = self(input_ids=input_ids, attention_mask=attention_mask,
+                                max_new_tokens=max_new_tokens, mode='generate')
+
+                generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)[0]
+
+                generated = generated[len(batch['prompt_ques'][0]):]
+                print(f"Prompt: \"{batch['prompt_ques'][0]}\"")
+                print(f"Wanted summary: \"{batch['prompt_ans'][0]}\"")
+                print(f"Generated summary: \"{repr(generated)}\"")
 
             eval_epoch_loss = eval_loss / len(val_loader)
             eval_ppl = torch.exp(eval_epoch_loss)
