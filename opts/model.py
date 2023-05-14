@@ -123,7 +123,7 @@ class OPTSModel(torch.nn.Module):
                 # with self.accelerator.accumulate(self.model):
 
                 optimizer.zero_grad()
-                batch_data = {k: batch[k].to(self.device).to(self.device) for k in DATA_KEYS}
+                batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
 
                 cumul_losses = []
                 for i_split in range(0, len(batch_data['input_ids']), self.cfg.training.batch_split_size):
@@ -168,8 +168,8 @@ class OPTSModel(torch.nn.Module):
             for step, batch in enumerate(val_loader):
                 if step >= self.cfg.testing.n_generate:
                     break
-                input_ids = torch.tensor(batch['prompt_ques_tokens'][0:1])
-                attention_mask = torch.tensor(batch['prompt_ques_attention_mask'][0:1])
+                input_ids = torch.tensor(batch['prompt_ques_tokens'][0:1]).to(self.device)
+                attention_mask = torch.tensor(batch['prompt_ques_attention_mask'][0:1]).to(self.device)
                 max_new_tokens = min(self.cfg.max_tokens - len(input_ids[0]), self.cfg.generate_max_new_tokens)
 
                 with torch.no_grad():
