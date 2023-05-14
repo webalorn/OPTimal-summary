@@ -2,8 +2,8 @@ import torch
 
 from pynvml import *
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print("Using device", device)
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# print("Using device", device)
 
 def print_trainable_parameters(model):
     """

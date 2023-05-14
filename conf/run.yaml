@@ -22,7 +22,7 @@ training:
   num_epochs: 1
 
 testing:
-    batch_size: 2
+  batch_size: 2
 
 peft:
   method: lora

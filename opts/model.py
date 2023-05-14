@@ -137,8 +137,11 @@ class OPTSModel(torch.nn.Module):
                     lr_scheduler.step()
                     optimizer.zero_grad()
 
+                    print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {loss:.6f} (avg {total_loss/(step+1):.6f})')
+
                 if step % (len(train_loader)//4) == 0 and step != 0:
-                    print(step, len(train_loader), len(train_loader)//4, epoch)
+                    # print(step, len(train_loader), len(train_loader)//4, epoch)
+                    print("Saving model...")
                     self.save(epoch * len(train_loader) + step)
 
             self.eval()

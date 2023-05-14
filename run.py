@@ -8,10 +8,9 @@ import numpy as np
 
 from datasets import load_from_disk
 
-from opts.utils import print_trainable_parameters, print_gpu_utilization
+from opts.utils import print_gpu_utilization
 from opts.dataset import load_dataset, preprocess_data, get_data_loaders
 from opts.model import load_tokenizer, OPTSModel
-from opts.training import train_opts
 
 @hydra.main(version_base=None, config_path="conf", config_name="run")
 def run_main(config : DictConfig) -> None:
