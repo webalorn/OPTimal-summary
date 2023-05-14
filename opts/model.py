@@ -176,7 +176,7 @@ class OPTSModel(torch.nn.Module):
                     outputs = self(input_ids=input_ids, attention_mask=attention_mask,
                                 max_new_tokens=max_new_tokens, mode='generate')
 
-                generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)[0]
+                generated = tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0]
 
                 generated = generated[len(batch['prompt_ques'][0]):]
                 print(f"Prompt: \"{batch['prompt_ques'][0]}\"")
