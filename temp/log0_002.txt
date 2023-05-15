@@ -1,0 +1,92 @@
+Configuration
+-------------
+seed: 0
+train: true
+eval: true
+answer_prompt: ' Summary: '
+max_tokens: 2048
+generate_max_new_tokens: 100
+data:
+  max_train: null
+  max_test: 1000
+  max_val: 1000
+model:
+  name: facebook/opt-125m
+training:
+  lr: 0.002
+  batch_size: 16
+  batch_split_size: 2
+  num_epochs: 10
+  log_step: 10
+testing:
+  batch_size: 2
+  log_step: 200
+  n_generate: 10
+peft:
+  method: lora
+-------------
+
+GPU memory occupied: 3 MB.
+Loading Dataset
+DatasetDict({
+    train: Dataset({
+        features: ['article', 'summary', 'text', 'prompt_ques', 'prompt_ans', 'prompt_ques_tokens', 'prompt_ques_attention_mask', 'input_ids', 'attention_mask'],
+        num_rows: 148590
+    })
+    test: Dataset({
+        features: ['article', 'summary', 'text', 'prompt_ques', 'prompt_ans', 'prompt_ques_tokens', 'prompt_ques_attention_mask', 'input_ids', 'attention_mask'],
+        num_rows: 951
+    })
+    val: Dataset({
+        features: ['article', 'summary', 'text', 'prompt_ques', 'prompt_ans', 'prompt_ques_tokens', 'prompt_ques_attention_mask', 'input_ids', 'attention_mask'],
+        num_rows: 935
+    })
+})
+GPU memory occupied: 3 MB.
+Creating new PEFT adapter
+trainable params: 589824 || all params: 125829120 || trainable%: 0.46875
+GPU memory occupied: 1308 MB.
+GPU memory occupied: 1308 MB.
+Train: True | Eval: True
+[0] Step 1/9287 loss 2.998093 (avg 2.998093)
+[0] Step 11/9287 loss 2.487806 (avg 2.578785)
+[0] Step 21/9287 loss 2.421242 (avg 2.499906)
+[0] Step 31/9287 loss 2.624416 (avg 2.520044)
+[0] Step 41/9287 loss 2.380580 (avg 2.502368)
+[0] Step 51/9287 loss 2.190052 (avg 2.509174)
+[0] Step 61/9287 loss 2.156866 (avg 2.490916)
+[0] Step 71/9287 loss 2.462433 (avg 2.475006)
+[0] Step 81/9287 loss 2.470026 (avg 2.481083)
+[0] Step 91/9287 loss 2.438390 (avg 2.477913)
+[0] Step 101/9287 loss 2.566423 (avg 2.477230)
+[0] Step 111/9287 loss 2.403692 (avg 2.477900)
+[0] Step 121/9287 loss 2.559447 (avg 2.478807)
+[0] Step 131/9287 loss 2.394274 (avg 2.472557)
+[0] Step 141/9287 loss 2.369861 (avg 2.467843)
+[0] Step 151/9287 loss 2.442273 (avg 2.468103)
+[0] Step 161/9287 loss 2.618641 (avg 2.466135)
+[0] Step 171/9287 loss 2.344112 (avg 2.466153)
+[0] Step 181/9287 loss 2.417040 (avg 2.461651)
+[0] Step 191/9287 loss 2.463234 (avg 2.460701)
+[0] Step 201/9287 loss 2.349290 (avg 2.457929)
+[0] Step 211/9287 loss 2.373132 (avg 2.458626)
+[0] Step 221/9287 loss 2.197526 (avg 2.456716)
+[0] Step 231/9287 loss 2.745435 (avg 2.460151)
+[0] Step 241/9287 loss 2.440964 (avg 2.454071)
+[0] Step 251/9287 loss 2.284596 (avg 2.452901)
+[0] Step 261/9287 loss 2.259418 (avg 2.449250)
+[0] Step 271/9287 loss 2.365663 (avg 2.448859)
+[0] Step 281/9287 loss 2.452217 (avg 2.448087)
+[0] Step 291/9287 loss 2.237470 (avg 2.449933)
+[0] Step 301/9287 loss 2.851542 (avg 2.453300)
+[0] Step 311/9287 loss 2.541567 (avg 2.458617)
+[0] Step 321/9287 loss 2.497280 (avg 2.465648)
+[0] Step 331/9287 loss 2.474666 (avg 2.467947)
+[0] Step 341/9287 loss 2.633435 (avg 2.470886)
+[0] Step 351/9287 loss 3.159727 (avg 2.481949)
+[0] Step 361/9287 loss 2.895607 (avg 2.497384)
+[0] Step 371/9287 loss 2.678881 (avg 2.504403)
+[0] Step 381/9287 loss 2.565077 (avg 2.507214)
+[0] Step 391/9287 loss 2.526034 (avg 2.508396)
+[0] Step 401/9287 loss 2.454338 (avg 2.507287)
+[0] Step 411/9287 loss 2.373086 (avg 2.508315)

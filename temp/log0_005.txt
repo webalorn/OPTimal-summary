@@ -1,0 +1,58 @@
+Configuration
+-------------
+seed: 0
+train: true
+eval: true
+answer_prompt: ' Summary: '
+max_tokens: 2048
+generate_max_new_tokens: 100
+data:
+  max_train: null
+  max_test: 1000
+  max_val: 1000
+model:
+  name: facebook/opt-125m
+training:
+  lr: 0.005
+  batch_size: 16
+  batch_split_size: 2
+  num_epochs: 10
+  log_step: 10
+testing:
+  batch_size: 2
+  log_step: 200
+  n_generate: 10
+peft:
+  method: lora
+-------------
+
+GPU memory occupied: 3 MB.
+Loading Dataset
+DatasetDict({
+    train: Dataset({
+        features: ['article', 'summary', 'text', 'prompt_ques', 'prompt_ans', 'prompt_ques_tokens', 'prompt_ques_attention_mask', 'input_ids', 'attention_mask'],
+        num_rows: 148590
+    })
+    test: Dataset({
+        features: ['article', 'summary', 'text', 'prompt_ques', 'prompt_ans', 'prompt_ques_tokens', 'prompt_ques_attention_mask', 'input_ids', 'attention_mask'],
+        num_rows: 951
+    })
+    val: Dataset({
+        features: ['article', 'summary', 'text', 'prompt_ques', 'prompt_ans', 'prompt_ques_tokens', 'prompt_ques_attention_mask', 'input_ids', 'attention_mask'],
+        num_rows: 935
+    })
+})
+GPU memory occupied: 3 MB.
+Creating new PEFT adapter
+trainable params: 589824 || all params: 125829120 || trainable%: 0.46875
+GPU memory occupied: 1308 MB.
+GPU memory occupied: 1308 MB.
+Train: True | Eval: True
+[0] Step 1/9287 loss 2.800526 (avg 2.800526)
+[0] Step 11/9287 loss 2.867874 (avg 2.799538)
+[0] Step 21/9287 loss 2.628942 (avg 2.748443)
+[0] Step 31/9287 loss 2.363286 (avg 2.737267)
+[0] Step 41/9287 loss 2.839304 (avg 2.729599)
+[0] Step 51/9287 loss 3.206524 (avg 2.789564)
+[0] Step 61/9287 loss 3.072237 (avg 2.809629)
+[0] Step 71/9287 loss 2.962073 (avg 2.858968)
