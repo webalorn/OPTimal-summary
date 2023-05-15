@@ -101,23 +101,30 @@ class OPTSModel(torch.nn.Module):
         else:
             self.model.save_pretrained(f"results/opts_model_iter{iteration}")
         
-    def evaluate_model(self, val_loader, tokenizer, epoch=None):
+    def evaluate_model(self, val_loader, tokenizer, epoch=None, show_before_loss=None):
         self.eval()
         eval_loss = 0
         eval_preds = []
-        # for step, batch in enumerate(tqdm(val_loader)):
-        for step, batch in enumerate(val_loader):
-            batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
-            with torch.no_grad():
-                outputs = self(**batch_data, mode='evaluate')
 
-            loss = outputs.loss
-            eval_loss += loss.detach().float()
-            batch_generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
-            eval_preds.extend(batch_generated)
-        
-            if self.cfg.testing.log_step and step % self.cfg.testing.log_step == 0:
-                print(f"[EVAL] [{epoch}] Step {step+1}/{len(val_loader)} loss {eval_loss/(step+1)}\"")
+        if self.cfg.testing.test_loss:
+            for step, batch in enumerate(val_loader):
+                batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
+                with torch.no_grad():
+                    outputs = self(**batch_data, mode='evaluate')
+
+                loss = outputs.loss
+                eval_loss += loss.detach().float()
+                batch_generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
+                eval_preds.extend(batch_generated)
+            
+                if self.cfg.testing.log_step and step % self.cfg.testing.log_step == 0:
+                    print(f"[EVAL] [{epoch}] Step {step+1}/{len(val_loader)} loss {eval_loss/(step+1)}\"")
+            
+            if show_before_loss is not None:
+                print(show_before_loss)
+            eval_epoch_loss = eval_loss / len(val_loader)
+            eval_ppl = torch.exp(eval_epoch_loss)
+            print(f"Test loss: {eval_ppl=} {eval_epoch_loss=}")
     
         # Evaluate generations
         for step, batch in enumerate(val_loader):
@@ -139,15 +146,6 @@ class OPTSModel(torch.nn.Module):
             print(f"\033[92mGenerated summary:\033[0m \"{repr(generated)}\"")
             print()
 
-        eval_epoch_loss = eval_loss / len(val_loader)
-        eval_ppl = torch.exp(eval_epoch_loss)
-
-        if self.cfg.train:
-            train_epoch_loss = total_loss / len(train_loader)
-            train_ppl = torch.exp(train_epoch_loss)
-            print(f"{epoch=}: {train_ppl=} {train_epoch_loss=} {eval_ppl=} {eval_epoch_loss=}")
-        else:
-            print(f"{epoch=}: {eval_ppl=} {eval_epoch_loss=}")
 
     def finetune_model(self, train_loader, val_loader, tokenizer):
         print_gpu_utilization()
@@ -169,41 +167,46 @@ class OPTSModel(torch.nn.Module):
 
             print("Train:", self.cfg.train, "| Eval:", self.cfg.eval)
 
-            if self.cfg.train:
-                self.train()
-                total_loss = 0
-                # for step, batch in enumerate(tqdm(train_loader)):
-                for step, batch in enumerate(train_loader):
-                    # with self.accelerator.accumulate(self.model):
+            self.train()
+            total_loss = 0
+            # for step, batch in enumerate(tqdm(train_loader)):
+            for step, batch in enumerate(train_loader):
+                # with self.accelerator.accumulate(self.model):
 
-                    optimizer.zero_grad()
-                    batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
+                optimizer.zero_grad()
+                batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
 
-                    cumul_losses = []
-                    for i_split in range(0, len(batch_data['input_ids']), self.cfg.training.batch_split_size):
-                        split_data = {
-                            k: batch_data[k][i_split : i_split + self.cfg.training.batch_split_size]
-                            for k in DATA_KEYS
-                        }
-                        outputs = self(**split_data, mode='train')
-                        self.accelerator.backward(outputs.loss)
-                        cumul_losses.append(outputs.loss.detach().cpu().float())
+                cumul_losses = []
+                for i_split in range(0, len(batch_data['input_ids']), self.cfg.training.batch_split_size):
+                    split_data = {
+                        k: batch_data[k][i_split : i_split + self.cfg.training.batch_split_size]
+                        for k in DATA_KEYS
+                    }
+                    outputs = self(**split_data, mode='train')
+                    self.accelerator.backward(outputs.loss)
+                    cumul_losses.append(outputs.loss.detach().cpu().float())
 
-                    batch_loss = sum(cumul_losses) / len(cumul_losses)
-                    total_loss += batch_loss
-                    optimizer.step()
-                    lr_scheduler.step()
+                batch_loss = sum(cumul_losses) / len(cumul_losses)
+                total_loss += batch_loss
+                optimizer.step()
+                lr_scheduler.step()
 
-                    if self.cfg.training.log_step and step % self.cfg.training.log_step == 0:
-                        print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {batch_loss:.6f} (avg {total_loss/(step+1):.6f})')
+                if self.cfg.training.log_step and step % self.cfg.training.log_step == 0:
+                    print(f'[{epoch}] Step {step+1}/{len(train_loader)} loss {batch_loss:.6f} (avg {total_loss/(step+1):.6f})')
 
-                    if step % (len(train_loader)//4) == 0 and step != 0:
-                        # print(step, len(train_loader), len(train_loader)//4, epoch)
-                        print("Saving model...")
-                        self.save(epoch * len(train_loader) + step)
+                if step % (len(train_loader)//4) == 0 and step != 0:
+                    # print(step, len(train_loader), len(train_loader)//4, epoch)
+                    print("Saving model...")
+                    self.save(epoch * len(train_loader) + step)
+            
+            train_epoch_loss = total_loss / len(train_loader)
+            train_ppl = torch.exp(train_epoch_loss)
+            show_loss_msg = f"{epoch=}: {train_ppl=} {train_epoch_loss=}"
 
             if self.cfg.eval:
-                self.evaluate_model(val_loader, tokenizer, epoch=epoch)
+                self.evaluate_model(val_loader, tokenizer, epoch=epoch, show_before_loss=show_loss_msg)
+            else:
+                print(show_loss_msg)
 
             self.save(f"epoch{epoch}")
 

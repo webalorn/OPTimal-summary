@@ -29,6 +29,7 @@ testing:
   batch_size: 2
   log_step: 200
   n_generate: 10
+  test_loss: yes
 
 peft:
   method: lora
