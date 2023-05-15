@@ -100,9 +100,56 @@ class OPTSModel(torch.nn.Module):
             self.model.save_pretrained("results/opts_model")
         else:
             self.model.save_pretrained(f"results/opts_model_iter{iteration}")
+        
+    def evaluate_model(self, val_loader, tokenizer, epoch=None):
+        self.eval()
+        eval_loss = 0
+        eval_preds = []
+        # for step, batch in enumerate(tqdm(val_loader)):
+        for step, batch in enumerate(val_loader):
+            batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
+            with torch.no_grad():
+                outputs = self(**batch_data, mode='evaluate')
+
+            loss = outputs.loss
+            eval_loss += loss.detach().float()
+            batch_generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
+            eval_preds.extend(batch_generated)
+        
+            if self.cfg.testing.log_step and step % self.cfg.testing.log_step == 0:
+                print(f"[EVAL] [{epoch}] Step {step+1}/{len(val_loader)} loss {eval_loss/(step+1)}\"")
+    
+        # Evaluate generations
+        for step, batch in enumerate(val_loader):
+            if step >= self.cfg.testing.n_generate:
+                break
+            input_ids = torch.tensor(batch['prompt_ques_tokens'][0:1]).to(self.device)
+            attention_mask = torch.tensor(batch['prompt_ques_attention_mask'][0:1]).to(self.device)
+            max_new_tokens = min(self.cfg.max_tokens - len(input_ids[0]), self.cfg.generate_max_new_tokens)
+
+            with torch.no_grad():
+                outputs = self(input_ids=input_ids, attention_mask=attention_mask,
+                        max_new_tokens=max_new_tokens, mode='generate')
+
+            generated = tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0]
+
+            generated = generated[len(batch['prompt_ques'][0]):]
+            print(f"\033[92mPrompt:\033[0m \"{batch['prompt_ques'][0]}\"")
+            print(f"\033[92mWanted summary:\033[0m \"{batch['prompt_ans'][0]}\"")
+            print(f"\033[92mGenerated summary:\033[0m \"{repr(generated)}\"")
+            print()
+
+        eval_epoch_loss = eval_loss / len(val_loader)
+        eval_ppl = torch.exp(eval_epoch_loss)
+
+        if self.cfg.train:
+            train_epoch_loss = total_loss / len(train_loader)
+            train_ppl = torch.exp(train_epoch_loss)
+            print(f"{epoch=}: {train_ppl=} {train_epoch_loss=} {eval_ppl=} {eval_epoch_loss=}")
+        else:
+            print(f"{epoch=}: {eval_ppl=} {eval_epoch_loss=}")
 
     def finetune_model(self, train_loader, val_loader, tokenizer):
-
         print_gpu_utilization()
 
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.cfg.training.lr)
@@ -156,52 +203,7 @@ class OPTSModel(torch.nn.Module):
                         self.save(epoch * len(train_loader) + step)
 
             if self.cfg.eval:
-                self.eval()
-                eval_loss = 0
-                eval_preds = []
-                # for step, batch in enumerate(tqdm(val_loader)):
-                for step, batch in enumerate(val_loader):
-                    batch_data = {k: batch[k].to(self.device) for k in DATA_KEYS}
-                    with torch.no_grad():
-                        outputs = self(**batch_data, mode='evaluate')
-
-                    loss = outputs.loss
-                    eval_loss += loss.detach().float()
-                    batch_generated = tokenizer.batch_decode(torch.argmax(outputs.logits, -1).detach().cpu().numpy(), skip_special_tokens=True)
-                    eval_preds.extend(batch_generated)
-                
-                    if self.cfg.testing.log_step and step % self.cfg.testing.log_step == 0:
-                        print(f"[EVAL] [{epoch}] Step {step+1}/{len(val_loader)} loss {eval_loss/(step+1)}\"")
-            
-                # Evaluate generations
-                for step, batch in enumerate(val_loader):
-                    if step >= self.cfg.testing.n_generate:
-                        break
-                    input_ids = torch.tensor(batch['prompt_ques_tokens'][0:1]).to(self.device)
-                    attention_mask = torch.tensor(batch['prompt_ques_attention_mask'][0:1]).to(self.device)
-                    max_new_tokens = min(self.cfg.max_tokens - len(input_ids[0]), self.cfg.generate_max_new_tokens)
-
-                    with torch.no_grad():
-                        outputs = self(input_ids=input_ids, attention_mask=attention_mask,
-                                max_new_tokens=max_new_tokens, mode='generate')
-
-                    generated = tokenizer.batch_decode(outputs.detach().cpu().numpy(), skip_special_tokens=True)[0]
-
-                    generated = generated[len(batch['prompt_ques'][0]):]
-                    print(f"\033[92mPrompt:\033[0m \"{batch['prompt_ques'][0]}\"")
-                    print(f"\033[92mWanted summary:\033[0m \"{batch['prompt_ans'][0]}\"")
-                    print(f"\033[92mGenerated summary:\033[0m \"{repr(generated)}\"")
-                    print()
-
-                eval_epoch_loss = eval_loss / len(val_loader)
-                eval_ppl = torch.exp(eval_epoch_loss)
-
-                if self.cfg.train:
-                    train_epoch_loss = total_loss / len(train_loader)
-                    train_ppl = torch.exp(train_epoch_loss)
-                    print(f"{epoch=}: {train_ppl=} {train_epoch_loss=} {eval_ppl=} {eval_epoch_loss=}")
-                else:
-                    print(f"{epoch=}: {eval_ppl=} {eval_epoch_loss=}")
+                self.evaluate_model(val_loader, tokenizer, epoch=epoch)
 
             self.save(f"epoch{epoch}")
 

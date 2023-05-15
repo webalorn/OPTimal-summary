@@ -46,18 +46,17 @@ def run_main(config : DictConfig) -> None:
     print_gpu_utilization()
 
     # Loading model
-    if config.train:
-        model = OPTSModel(config)
-    else:
-        model = OPTSModel(config, load_from='results/opts_model_iter4642')
+    model = OPTSModel(config, load_from=config.model.load_from)
 
     model.print_trainable_parameters()
-
     print_gpu_utilization()
 
     # Training
-    model.finetune_model(train_loader, val_loader, tokenizer)
-    model.save()
+    if config.train:
+        model.finetune_model(train_loader, val_loader, tokenizer)
+        model.save()
+    else:
+        model.evaluate_model()
 
 
 if __name__ == "__main__":

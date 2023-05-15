@@ -16,6 +16,7 @@ data:
 model:
   # name: "facebook/opt-350m"
   name: "facebook/opt-125m"
+  load_from: null
 
 training:
   lr: 0.0002
