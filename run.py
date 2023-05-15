@@ -56,7 +56,7 @@ def run_main(config : DictConfig) -> None:
         model.finetune_model(train_loader, val_loader, tokenizer)
         model.save()
     else:
-        model.evaluate_model()
+        model.evaluate_model(val_loader, tokenizer)
 
 
 if __name__ == "__main__":
