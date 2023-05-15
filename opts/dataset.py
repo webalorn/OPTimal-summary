@@ -19,14 +19,16 @@ def load_dataset(config):
 def preprocess_data(dataset, config, tokenizer):
     def preprocess_function(data_row):
         prompt_ques = tokenizer.bos_token + data_row['article'] + config.answer_prompt
-        prompt_ans = data_row['summary'] # + tokenizer.eos_token
+        prompt_ans = data_row['summary'] + tokenizer.eos_token
         text = prompt_ques + prompt_ans
         (tokens,) = tokenizer(text, return_tensors="pt", padding=False, add_special_tokens=False),
+        prompt_ques_tokens = tokenizer(prompt_ques, return_tensors="pt", padding=True, add_special_tokens=False)
         data = {
             'text': text,
             'prompt_ques': prompt_ques,
             'prompt_ans': prompt_ans,
-            'prompt_ques_tokens': tokenizer(prompt_ques, return_tensors="pt", padding=True, add_special_tokens=False)['input_ids'][0],
+            'prompt_ques_tokens': prompt_ques_tokens['input_ids'][0],
+            'prompt_ques_attention_mask': prompt_ques_tokens['attention_mask'][0],
             # 'prompt_ans_tokens': tokenizer(prompt_ans, return_tensors="pt", padding=True, add_special_tokens=False)['input_ids'][0],
             'input_ids': tokens['input_ids'][0],
             'attention_mask': tokens['attention_mask'][0],
@@ -46,12 +48,8 @@ def preprocess_data(dataset, config, tokenizer):
 
 def get_data_loaders(dataset, config, tokenizer):
     def collate_padding(batch):
-        # batch = {
-        #     #**tokenizer(batch[0]['text'], return_tensors="pt", padding='max_length', truncation=True, max_length=2048),
-        #     **tokenizer(batch[0]['text'], return_tensors="pt", padding=True),
-        #     # **batch[0],
-        # }
         batch = { key: [row[key] for row in batch] for key in batch[0].keys() }
+
         batch['input_ids'] = pad_sequence([torch.tensor(t) for t in batch['input_ids']], padding_value=tokenizer.pad_token_id, batch_first=True)
         batch['attention_mask'] = pad_sequence([torch.tensor(t) for t in batch['attention_mask']], padding_value=0.0, batch_first=True)
         

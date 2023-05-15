@@ -6,22 +6,30 @@ eval: yes
 # answer_prompt: ' The summary of the previous text is: '
 answer_prompt: ' Summary: '
 max_tokens: 2048
+generate_max_new_tokens: 100
 
 data:
   max_train: null
-  max_test: null
-  max_val: null
+  max_test: 1000
+  max_val: 1000
 
 model:
-  name: "facebook/opt-350m"
+  # name: "facebook/opt-350m"
+  name: "facebook/opt-125m"
+  load_from: null
 
 training:
   lr: 0.0002
   batch_size: 16
-  num_epochs: 3
+  batch_split_size: 2
+  num_epochs: 10
+  log_step: 10
 
 testing:
-    batch_size: 16
+  batch_size: 2
+  log_step: 200
+  n_generate: 10
+  test_loss: yes
 
 peft:
   method: lora
